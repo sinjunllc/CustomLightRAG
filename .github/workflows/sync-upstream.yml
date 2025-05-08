@@ -44,6 +44,6 @@ jobs:
         run: |
           # Authenticate using the token
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git
-          
+
           # Push the changes to the forked repo
           git push origin main
