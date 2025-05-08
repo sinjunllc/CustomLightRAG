@@ -1,0 +1,43 @@
+name: Sync Upstream to Main
+
+on:
+  schedule:
+    - cron: '0 19 * * *' # Runs every night at midnight UTC
+  workflow_dispatch: # Allows for manual triggering
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "sinjunllc-bot"
+          git config --global user.email "your-email@example.com"
+
+      - name: Add upstream
+        run: |
+          git remote add upstream https://github.com/HKUDS/LightRAG.git
+          git fetch upstream
+          git checkout main
+
+      - name: Sync with upstream
+        run: |
+          # Ensure the main branch is clean
+          git reset --hard origin/main
+          
+          # Fetch the latest changes from upstream
+          git fetch upstream main
+
+          # Fast-forward merge
+          git merge --ff-only upstream/main
+
+      - name: Push to origin
+        run: |
+          # Push the changes to the forked repo
+          git push origin main
