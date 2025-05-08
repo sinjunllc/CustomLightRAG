@@ -30,7 +30,7 @@ jobs:
         run: |
           # Ensure the main branch is clean
           git reset --hard origin/main
-          
+
           # Fetch the latest changes from upstream
           git fetch upstream main
 
