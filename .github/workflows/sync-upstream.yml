@@ -2,7 +2,7 @@ name: Sync Upstream to Main
 
 on:
   schedule:
-    - cron: '0 19 * * *' # Runs every night at midnight UTC
+    - cron: '20 21 * * *' # Runs every day at 21:30 UTC (9:30 PM UTC)
   workflow_dispatch: # Allows for manual triggering
 
 jobs:
@@ -22,6 +22,7 @@ jobs:
 
       - name: Add upstream
         run: |
+          # Add the upstream repository
           git remote add upstream https://github.com/HKUDS/LightRAG.git
           git fetch upstream
           git checkout main
@@ -38,6 +39,11 @@ jobs:
           git merge --ff-only upstream/main
 
       - name: Push to origin
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          # Authenticate using the token
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git
+          
           # Push the changes to the forked repo
           git push origin main
