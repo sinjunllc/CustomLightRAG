@@ -1,35 +1,34 @@
 name: Sync Upstream to Main
-
+ 
 on:
   schedule:
     - cron: '55 1 * * *'    # Runs every day at 06:55 AM Pakistan Time (01:55 UTC)
   workflow_dispatch:
-
+ 
 jobs:
   sync-upstream:
     runs-on: ubuntu-latest
-
+ 
     steps:
-      # 1) Checkout your fork using your PAT
+      # 1) Checkout your fork using your PAT, not GITHUB_TOKEN
       - name: Checkout fork
         uses: actions/checkout@v3
         with:
           repository: sinjunllc/CustomLightRAG
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}    # <— use your personal PAT here
           fetch-depth: 0
-
-      # 2) Force-reset main to upstream
+ 
+      # 2) Add upstream and merge
       - name: Sync with upstream
         run: |
           git remote add upstream https://github.com/HKUDS/LightRAG.git
           git fetch upstream
           git checkout main
-          # Discard any local commits and mirror upstream exactly
-          git reset --hard upstream/main
-
-      # 3) Push the exact mirror back to your fork
+          git merge --ff-only upstream/main
+ 
+      # 3) Push back to your fork using the same PAT
       - name: Push to origin
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          git push https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git main --force
+          git push https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git main
