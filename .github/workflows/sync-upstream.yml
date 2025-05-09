@@ -2,7 +2,7 @@ name: Sync Upstream to Main
 
 on:
   schedule:
-    - cron: '55 1 * * *'    # 06:55 AM PKT / 01:55 UTC
+    - cron: '55 1 * * *'    # Runs every day at 06:55 AM Pakistan Time (01:55 UTC)
   workflow_dispatch:
 
 jobs:
@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) Checkout your fork using your PAT
       - name: Checkout fork
         uses: actions/checkout@v3
         with:
@@ -17,18 +18,18 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           fetch-depth: 0
 
+      # 2) Force-reset main to upstream
       - name: Sync with upstream
         run: |
           git remote add upstream https://github.com/HKUDS/LightRAG.git
           git fetch upstream
           git checkout main
-
-          # 1) Wipe main to match upstream exactly
+          # Discard any local commits and mirror upstream exactly
           git reset --hard upstream/main
 
-          # 2) Restore our workflow file so it isn’t lost
-          git checkout origin/main -- .github/workflows/sync-upstream.yml
-
+      # 3) Push the exact mirror back to your fork
       - name: Push to origin
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/sinjunllc/CustomLightRAG.git main --force
+          git push https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git main --force
