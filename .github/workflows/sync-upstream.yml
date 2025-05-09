@@ -2,7 +2,7 @@ name: Sync Upstream to Main
 
 on:
   schedule:
-    - cron: '0 1 * * *' # Runs every day at 1:00 AM UTC
+    - cron: '10 1 * * *' # Runs every day at 1:10 AM UTC
   workflow_dispatch: # Allows for manual triggering
 
 jobs:
@@ -38,12 +38,11 @@ jobs:
           # Fast-forward merge
           git merge --ff-only upstream/main
 
-      - name: Debug - Check Token Access
+      - name: Debug - Verify Token Access
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "Token is: $GH_TOKEN"
-          echo "Token length: ${#GH_TOKEN}"
+          echo "Token Length: ${#GH_TOKEN}"
           if [ -z "$GH_TOKEN" ]; then
             echo "ERROR: GH_TOKEN is empty or not accessible."
             exit 1
@@ -53,11 +52,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Authenticate using the token
+          # Explicitly set the token for authentication
           echo "Setting remote URL with token authentication..."
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git
 
-          # Verify authentication
+          # Verify remote URLs
+          echo "Verifying remotes..."
           git remote -v
 
           # Push the changes to the forked repo
