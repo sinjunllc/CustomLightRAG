@@ -2,7 +2,7 @@ name: Sync Upstream to Main
 
 on:
   schedule:
-    - cron: '30 3 * * *'    # 3:30 AM UTC daily
+    - cron: '55 1 * * *'    # Runs every day at 06:55 AM Pakistan Time (01:55 UTC)
   workflow_dispatch:
 
 jobs:
