@@ -2,70 +2,33 @@ name: Sync Upstream to Main
 
 on:
   schedule:
-    - cron: '30 4 * * *' # Runs every day at 4:30 AM UTC
-  workflow_dispatch: # Allows for manual triggering
+    - cron: '30 3 * * *'    # 3:30 AM UTC daily
+  workflow_dispatch:
 
 jobs:
   sync-upstream:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the repo
+      # 1) Checkout your fork using your PAT, not GITHUB_TOKEN
+      - name: Checkout fork
         uses: actions/checkout@v3
         with:
+          repository: sinjunllc/CustomLightRAG
+          token: ${{ secrets.GH_TOKEN }}    # <— use your personal PAT here
           fetch-depth: 0
 
-      - name: Set up Git
-        run: |
-          git config --global user.name "sinjunllc-bot"
-          git config --global user.email "your-email@example.com"
-
-      - name: Add upstream
+      # 2) Add upstream and merge
+      - name: Sync with upstream
         run: |
           git remote add upstream https://github.com/HKUDS/LightRAG.git
           git fetch upstream
           git checkout main
-
-      - name: Sync with upstream
-        run: |
-          git reset --hard origin/main
-          git fetch upstream main
           git merge --ff-only upstream/main
 
-      - name: Debug - Verify Token Access and Strip Newline
+      # 3) Push back to your fork using the same PAT
+      - name: Push to origin
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "Original Token Length: ${#GH_TOKEN}"
-          echo "Original Token Content (Visible Characters Only):"
-          echo "${GH_TOKEN}" | od -c
-
-          # Strip newlines and whitespace explicitly
-          STRIPPED_TOKEN=$(echo "${GH_TOKEN}" | sed 's/[[:space:]]//g')
-          echo "Stripped Token Length: ${#STRIPPED_TOKEN}"
-          echo "Stripped Token Content (Visible Characters Only):"
-          echo "${STRIPPED_TOKEN}" | od -c
-
-          # Export the stripped token for the next steps
-          echo "GH_TOKEN_STRIPPED=${STRIPPED_TOKEN}" >> $GITHUB_ENV
-
-      - name: Set Up Credentials for Push
-        env:
-          GH_TOKEN: ${{ env.GH_TOKEN_STRIPPED }}
-        run: |
-          echo "Setting up credentials for git push..."
-          git config --global credential.helper 'store --file=/tmp/git-credentials'
-          echo "https://x-access-token:${GH_TOKEN}@github.com" > /tmp/git-credentials
-
-      - name: Push to origin
-        env:
-          GH_TOKEN: ${{ env.GH_TOKEN_STRIPPED }}
-        run: |
-          echo "Setting remote URL with token authentication..."
-          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git
-
-          echo "Verifying remotes..."
-          git remote -v
-
-          echo "Pushing changes to origin/main..."
-          GIT_ASKPASS=echo git push origin main || exit 1
+          git push https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git main
