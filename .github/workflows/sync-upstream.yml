@@ -2,7 +2,7 @@ name: Sync Upstream to Main
 
 on:
   schedule:
-    - cron: '10 4 * * *' # Runs every day at 4:10 AM UTC
+    - cron: '30 3 * * *' # Runs every day at 3:30 AM UTC
   workflow_dispatch: # Allows for manual triggering
 
 jobs:
@@ -22,85 +22,50 @@ jobs:
 
       - name: Add upstream
         run: |
-          # Add the upstream repository
           git remote add upstream https://github.com/HKUDS/LightRAG.git
           git fetch upstream
           git checkout main
 
       - name: Sync with upstream
         run: |
-          # Ensure the main branch is clean
           git reset --hard origin/main
-
-          # Fetch the latest changes from upstream
           git fetch upstream main
-
-          # Fast-forward merge
           git merge --ff-only upstream/main
 
-      - name: Debug - Verify Token Access and Content
+      - name: Debug - Verify Token Access and Strip Newline
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          echo "Token Length: ${#GH_TOKEN}"
-          echo "Token Content (Visible Characters Only):"
+          echo "Original Token Length: ${#GH_TOKEN}"
+          echo "Original Token Content:"
           echo "${GH_TOKEN}" | od -c
 
-          # Check for newline or whitespace characters
-          if [[ "${GH_TOKEN}" =~ \n ]]; then
-            echo "ERROR: Token contains a newline character."
-            exit 1
-          fi
+          # Strip newlines and whitespace
+          STRIPPED_TOKEN=$(echo -n "${GH_TOKEN}" | tr -d '\n' | tr -d '\r' | tr -d ' ')
+          echo "Stripped Token Length: ${#STRIPPED_TOKEN}"
+          echo "Stripped Token Content:"
+          echo "${STRIPPED_TOKEN}" | od -c
 
-          if [[ "${GH_TOKEN}" =~ \s ]]; then
-            echo "ERROR: Token contains whitespace characters."
-            exit 1
-          fi
-
-          if [ ${#GH_TOKEN} -ne 86 ]; then
-            echo "ERROR: Token length is not 86. Please verify the token."
-            exit 1
-          fi
-
-      - name: Verify Repository Access
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "Verifying repository access..."
-          curl -H "Authorization: token ${GH_TOKEN}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/repos/sinjunllc/CustomLightRAG \
-               | jq '.permissions'
-
-      - name: Verify User Identity
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "Verifying user identity..."
-          curl -H "Authorization: token ${GH_TOKEN}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/user
+          # Export the stripped token for the next steps
+          echo "GH_TOKEN_STRIPPED=${STRIPPED_TOKEN}" >> $GITHUB_ENV
 
       - name: Set Up Credentials for Push
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ env.GH_TOKEN_STRIPPED }}
         run: |
           echo "Setting up credentials for git push..."
           git config --global credential.helper 'store --file=/tmp/git-credentials'
           echo "https://x-access-token:${GH_TOKEN}@github.com" > /tmp/git-credentials
-          cat /tmp/git-credentials
 
       - name: Push to origin
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ env.GH_TOKEN_STRIPPED }}
         run: |
           echo "Setting remote URL with token authentication..."
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git
 
-          # Verify remote URLs
           echo "Verifying remotes..."
           git remote -v
 
-          # Push the changes to the forked repo
           echo "Pushing changes to origin/main..."
-          git push origin main || exit 1
+          GIT_ASKPASS=echo git push origin main || exit 1
