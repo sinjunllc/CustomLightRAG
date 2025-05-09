@@ -38,13 +38,27 @@ jobs:
           # Fast-forward merge
           git merge --ff-only upstream/main
 
-      - name: Debug - Verify Token Access
+      - name: Debug - Verify Token Access and Content
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "Token Length: ${#GH_TOKEN}"
-          if [ -z "$GH_TOKEN" ]; then
-            echo "ERROR: GH_TOKEN is empty or not accessible."
+          echo "Token Content (Visible Characters Only):"
+          echo "${GH_TOKEN}" | od -c
+
+          # Check for newline or whitespace characters
+          if [[ "${GH_TOKEN}" =~ \n ]]; then
+            echo "ERROR: Token contains a newline character."
+            exit 1
+          fi
+
+          if [[ "${GH_TOKEN}" =~ \s ]]; then
+            echo "ERROR: Token contains whitespace characters."
+            exit 1
+          fi
+
+          if [ ${#GH_TOKEN} -ne 86 ]; then
+            echo "ERROR: Token length is not 86. Please verify the token."
             exit 1
           fi
 
