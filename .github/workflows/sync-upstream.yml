@@ -2,7 +2,7 @@ name: Sync Upstream to Main
 
 on:
   schedule:
-    - cron: '0 3 * * *' # Runs every day at 3:00 AM UTC
+    - cron: '30 3 * * *' # Runs every day at 3:30 AM UTC
   workflow_dispatch: # Allows for manual triggering
 
 jobs:
@@ -58,7 +58,7 @@ jobs:
                https://api.github.com/repos/sinjunllc/CustomLightRAG \
                | jq '.permissions'
 
-      - name: Debug - Verify User
+      - name: Verify User Identity
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -67,12 +67,19 @@ jobs:
                -H "Accept: application/vnd.github.v3+json" \
                https://api.github.com/user
 
+      - name: Set Up Credentials for Push
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "Setting up credentials for git push..."
+          git config --global credential.helper 'store --file=/tmp/git-credentials'
+          echo "https://x-access-token:${GH_TOKEN}@github.com" > /tmp/git-credentials
+          cat /tmp/git-credentials
+
       - name: Push to origin
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          GIT_ASKPASS: /bin/echo
         run: |
-          # Explicitly set the token for authentication
           echo "Setting remote URL with token authentication..."
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git
 
@@ -80,10 +87,6 @@ jobs:
           echo "Verifying remotes..."
           git remote -v
 
-          # Force authentication with token
-          echo "Enforcing authentication..."
-          echo "${GH_TOKEN}" | git credential-cache store
-
           # Push the changes to the forked repo
           echo "Pushing changes to origin/main..."
-          GIT_ASKPASS=echo git push origin main || exit 1
+          git push origin main || exit 1
