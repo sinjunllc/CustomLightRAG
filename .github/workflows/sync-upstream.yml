@@ -38,6 +38,13 @@ jobs:
           # Fast-forward merge
           git merge --ff-only upstream/main
 
+      - name: Debug - Verify Token Access
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "Token is: $GH_TOKEN"
+          echo "Token length: ${#GH_TOKEN}"
+
       - name: Push to origin
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
