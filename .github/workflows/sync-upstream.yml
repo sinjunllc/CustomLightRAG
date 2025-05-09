@@ -2,7 +2,7 @@ name: Sync Upstream to Main
 
 on:
   schedule:
-    - cron: '0 2 * * *' # Runs every day at 2:00 AM UTC
+    - cron: '0 3 * * *' # Runs every day at 3:00 AM UTC
   workflow_dispatch: # Allows for manual triggering
 
 jobs:
@@ -53,15 +53,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           echo "Verifying repository access..."
-          # Check if the token can access the repository
           curl -H "Authorization: token ${GH_TOKEN}" \
                -H "Accept: application/vnd.github.v3+json" \
                https://api.github.com/repos/sinjunllc/CustomLightRAG \
                | jq '.permissions'
 
+      - name: Debug - Verify User
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "Verifying user identity..."
+          curl -H "Authorization: token ${GH_TOKEN}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/user
+
       - name: Push to origin
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GIT_ASKPASS: /bin/echo
         run: |
           # Explicitly set the token for authentication
           echo "Setting remote URL with token authentication..."
@@ -70,6 +79,10 @@ jobs:
           # Verify remote URLs
           echo "Verifying remotes..."
           git remote -v
+
+          # Force authentication with token
+          echo "Enforcing authentication..."
+          echo "${GH_TOKEN}" | git credential-cache store
 
           # Push the changes to the forked repo
           echo "Pushing changes to origin/main..."
