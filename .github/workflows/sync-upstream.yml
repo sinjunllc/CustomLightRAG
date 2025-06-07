@@ -1,0 +1,50 @@
+name: Sync Upstream to Main
+
+on:
+  schedule:
+    - cron: '55 1 * * *'          # 06:55 AM PKT / 01:55 UTC daily
+  workflow_dispatch:
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout fork using your PAT
+      - name: Checkout fork with PAT
+        uses: actions/checkout@v3
+        with:
+          repository: sinjunllc/CustomLightRAG
+          token: ${{ secrets.GH_TOKEN }}
+          fetch-depth: 0
+
+      # 2) Mirror upstream exactly, then re-add the workflow file
+      - name: Mirror upstream exactly
+        env:
+          WF_PATH: .github/workflows/sync-upstream.yml
+        run: |
+          # add & fetch upstream
+          git remote add upstream https://github.com/HKUDS/LightRAG.git
+          git fetch upstream
+
+          # reset main to match upstream/main
+          git checkout main
+          git reset --hard upstream/main
+
+          # restore the workflow file from yesterday's commit
+          git checkout origin/main -- "${WF_PATH}"
+
+          # configure an identity for the commit
+          git config user.email "bot@sinjunllc.com"
+          git config user.name  "sinjunllc-bot"
+
+          # commit (no-op if file unchanged)
+          git add "${WF_PATH}"
+          git commit -m "chore: re-add sync workflow after mirror" || true
+
+      # 3) Push the mirrored branch back to the fork
+      - name: Push mirror to fork
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git push https://x-access-token:${GH_TOKEN}@github.com/sinjunllc/CustomLightRAG.git main --force
